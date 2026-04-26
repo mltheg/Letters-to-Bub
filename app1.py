@@ -315,7 +315,7 @@ if check_password():
             st.info("No flowers yet. Upload your first one! 🌸")
     
     # ===== TAB 4: EVERYTHING THAT REMINDS ME OF YOU =====
-    elif page == "✨ Everything Reminds Me":
+    elif page == "✨ Everything that Reminds Me of You":
         st.header("✨ Everything That Reminds Me of You")
         st.markdown("_Share poems, pictures, and memories all in one beautiful place_")
         
