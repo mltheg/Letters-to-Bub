@@ -14,7 +14,7 @@ def check_password():
         st.session_state.password_correct = False
     if not st.session_state.password_correct:
         st.title("🔒 Access Protected")
-        pwd = st.text_input("Enter Password to View Journal", type="password")
+        pwd = st.text_input("Enter Password to View Letters", type="password")
         if st.button("Unlock"):
             if pwd == MY_PASSWORD:
                 st.session_state.password_correct = True
@@ -146,16 +146,15 @@ if check_password():
             with open(file, "w") as f:
                 json.dump([], f)
     
-    # Create tabs
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "💌 Letters to Bub", 
-        "🌅 Our Memories", 
-        "🌸 Flowers for just for you",
-        "✨ Everything that reminds me of you"
-    ])
+    # Sidebar navigation
+    st.sidebar.title("📖 Navigation")
+    page = st.sidebar.radio(
+        "Choose Section:",
+        ["💌 Letters to Bub", "🌅 Our Memories", "🌸 Flowers for You", "✨ Everything that Reminds Me of You"]
+    )
     
     # ===== TAB 1: LETTERS TO BUB =====
-    with tab1:
+    if page == "💌 Letters to Bub":
         st.header("✍️ Write a Letter")
         
         with st.form("letter_form"):
@@ -196,7 +195,9 @@ if check_password():
             st.info("No letters yet. Write your first letter! 💌")
     
     # ===== TAB 2: OUR MEMORIES =====
-    with tab2:
+    elif page == "🌅 Our Memories":
+    # ===== TAB 2: OUR MEMORIES =====
+    elif page == "🌅 Our Memories":
         st.header("📸 Upload Your Memory")
         
         with st.form("memory_form"):
@@ -221,12 +222,18 @@ if check_password():
         
         memories = load_json(MEMORIES_FILE)
         if memories:
-            cols = st.columns(3)
             for idx, memory in enumerate(memories):
-                with cols[idx % 3]:
-                    if os.path.exists(memory['file']):
-                        st.image(memory['file'], use_column_width=True)
-                        st.caption(memory['caption'])
+                with st.container():
+                    col_img, col_btn = st.columns([4, 1])
+                    with col_img:
+                        if os.path.exists(memory['file']):
+                            st.image(memory['file'], use_column_width=True)
+                            st.caption(memory['caption'])
+                    with col_btn:
+                        st.write("")
+                        st.write("")
+                        if st.button("✏️ Edit", key=f"edit_memory_{idx}"):
+                            st.session_state.edit_memory = idx
                         if st.button("🗑️ Delete", key=f"delete_memory_{idx}"):
                             memories.pop(idx)
                             save_json(MEMORIES_FILE, memories)
@@ -234,11 +241,23 @@ if check_password():
                                 os.remove(memory['file'])
                             st.success("Deleted!")
                             st.rerun()
+                
+                # Edit mode for this memory
+                if st.session_state.get("edit_memory") == idx:
+                    with st.form(f"edit_memory_form_{idx}", border=True):
+                        new_caption = st.text_input("Edit Caption", value=memory['caption'])
+                        if st.form_submit_button("Save Changes"):
+                            memory['caption'] = new_caption
+                            save_json(MEMORIES_FILE, memories)
+                            del st.session_state.edit_memory
+                            st.success("Memory updated! 🌅")
+                            st.rerun()
+                st.divider()
         else:
             st.info("No memories yet. Upload your first one! 📸")
     
     # ===== TAB 3: FLOWERS =====
-    with tab3:
+    elif page == "🌸 Flowers for You":
         st.header("🌸 Upload a Flower Photo")
         
         with st.form("flower_form"):
@@ -263,12 +282,18 @@ if check_password():
         
         flowers = load_json(FLOWERS_FILE)
         if flowers:
-            cols = st.columns(3)
             for idx, flower in enumerate(flowers):
-                with cols[idx % 3]:
-                    if os.path.exists(flower['file']):
-                        st.image(flower['file'], use_column_width=True)
-                        st.caption(flower['caption'])
+                with st.container():
+                    col_img, col_btn = st.columns([4, 1])
+                    with col_img:
+                        if os.path.exists(flower['file']):
+                            st.image(flower['file'], use_column_width=True)
+                            st.caption(flower['caption'])
+                    with col_btn:
+                        st.write("")
+                        st.write("")
+                        if st.button("✏️ Edit", key=f"edit_flower_{idx}"):
+                            st.session_state.edit_flower = idx
                         if st.button("🗑️ Delete", key=f"delete_flower_{idx}"):
                             flowers.pop(idx)
                             save_json(FLOWERS_FILE, flowers)
@@ -276,11 +301,23 @@ if check_password():
                                 os.remove(flower['file'])
                             st.success("Deleted!")
                             st.rerun()
+                
+                # Edit mode for this flower
+                if st.session_state.get("edit_flower") == idx:
+                    with st.form(f"edit_flower_form_{idx}", border=True):
+                        new_caption = st.text_input("Edit Caption", value=flower['caption'])
+                        if st.form_submit_button("Save Changes"):
+                            flower['caption'] = new_caption
+                            save_json(FLOWERS_FILE, flowers)
+                            del st.session_state.edit_flower
+                            st.success("Flower updated! 🌸")
+                            st.rerun()
+                st.divider()
         else:
             st.info("No flowers yet. Upload your first one! 🌸")
     
     # ===== TAB 4: EVERYTHING THAT REMINDS ME OF YOU =====
-    with tab4:
+    elif page == "✨ Everything Reminds Me":
         st.header("✨ Everything That Reminds Me of You")
         st.markdown("_Share poems, pictures, and memories all in one beautiful place_")
         
@@ -355,28 +392,69 @@ if check_password():
                     """, unsafe_allow_html=True)
                     
                     col1, col2, col3 = st.columns([3, 1, 1])
+                    with col2:
+                        if st.button("✏️ Edit", key=f"edit_reminder_{idx}"):
+                            st.session_state.edit_reminder = idx
                     with col3:
                         if st.button("🗑️ Delete", key=f"delete_reminder_{idx}"):
                             reminders.pop(idx)
                             save_json(REMINDERS_FILE, reminders)
                             st.success("Deleted!")
                             st.rerun()
+                    
+                    # Edit form for poem
+                    if st.session_state.get("edit_reminder") == idx:
+                        with st.form(f"edit_poem_form_{idx}", border=True):
+                            st.write("**Edit Poem**")
+                            new_title = st.text_input("Title", value=reminder['title'])
+                            new_content = st.text_area("Poem", value=reminder['content'], height=150)
+                            new_caption = st.text_input("Caption", value=reminder.get('caption', ''))
+                            if st.form_submit_button("Save Poem"):
+                                reminder['title'] = new_title
+                                reminder['content'] = new_content
+                                reminder['caption'] = new_caption
+                                save_json(REMINDERS_FILE, reminders)
+                                del st.session_state.edit_reminder
+                                st.success("Poem updated! 📝")
+                                st.rerun()
+                    
+                    st.divider()
                 
                 else:  # Picture
-                    if os.path.exists(reminder['file']):
-                        st.image(reminder['file'], use_column_width=True)
-                        st.markdown(f"<h4 style='color: #4A9B8E;'>{reminder['title']}</h4>", unsafe_allow_html=True)
-                        if reminder.get('caption'):
-                            st.markdown(f"<p style='color: #FFB6D9;'>{reminder['caption']}</p>", unsafe_allow_html=True)
-                        
-                        if st.button("🗑️ Delete", key=f"delete_reminder_{idx}"):
+                    col_img, col_btn = st.columns([3, 1])
+                    with col_img:
+                        if os.path.exists(reminder['file']):
+                            st.image(reminder['file'], use_column_width=True)
+                            st.markdown(f"<h4 style='color: #4A9B8E;'>{reminder['title']}</h4>", unsafe_allow_html=True)
+                            if reminder.get('caption'):
+                                st.markdown(f"<p style='color: #FFB6D9;'>{reminder['caption']}</p>", unsafe_allow_html=True)
+                    with col_btn:
+                        st.write("")
+                        st.write("")
+                        if st.button("✏️ Edit", key=f"edit_picture_{idx}"):
+                            st.session_state.edit_picture = idx
+                        if st.button("🗑️ Delete", key=f"delete_picture_{idx}"):
                             reminders.pop(idx)
                             save_json(REMINDERS_FILE, reminders)
                             if os.path.exists(reminder['file']):
                                 os.remove(reminder['file'])
                             st.success("Deleted!")
                             st.rerun()
-                        
-                        st.divider()
+                    
+                    # Edit form for picture
+                    if st.session_state.get("edit_picture") == idx:
+                        with st.form(f"edit_picture_form_{idx}", border=True):
+                            st.write("**Edit Picture**")
+                            new_title = st.text_input("Title", value=reminder['title'])
+                            new_caption = st.text_input("Caption", value=reminder.get('caption', ''))
+                            if st.form_submit_button("Save Picture"):
+                                reminder['title'] = new_title
+                                reminder['caption'] = new_caption
+                                save_json(REMINDERS_FILE, reminders)
+                                del st.session_state.edit_picture
+                                st.success("Picture updated! 🖼️")
+                                st.rerun()
+                    
+                    st.divider()
         else:
             st.info("No entries yet. Start adding your memories! ✨")
