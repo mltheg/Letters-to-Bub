@@ -45,20 +45,114 @@ def save_upload_file(uploaded_file):
 
 if check_password():
     st.set_page_config(layout="wide")
+    
+    # Custom CSS for turquoise pastel theme
+    st.markdown("""
+    <style>
+    :root {
+        --primary-color: #7DD3C0;
+        --secondary-color: #FFB6D9;
+        --accent-color: #FFE5B4;
+    }
+    
+    /* Main styling */
+    .stApp {
+        background: linear-gradient(135deg, #F0FFFE 0%, #F5F0FF 100%);
+    }
+    
+    /* Headers */
+    h1, h2, h3 {
+        color: #4A9B8E !important;
+    }
+    
+    /* Tabs styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background-color: #E8F8F5;
+        border-radius: 8px;
+        color: #4A9B8E;
+        font-weight: 500;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: #7DD3C0 !important;
+        color: white !important;
+    }
+    
+    /* Buttons */
+    .stButton>button {
+        background-color: #7DD3C0;
+        color: white;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+    
+    .stButton>button:hover {
+        background-color: #5DBDA8;
+        box-shadow: 0 4px 12px rgba(125, 211, 192, 0.3);
+    }
+    
+    /* Form inputs */
+    .stTextInput>div>div>input,
+    .stTextArea>div>div>textarea,
+    .stDateInput>div>div>input,
+    .stSelectbox>div>div>select {
+        background-color: #F0FFFE !important;
+        border: 2px solid #7DD3C0 !important;
+        border-radius: 8px;
+        color: #2D6A60 !important;
+    }
+    
+    /* Expanders */
+    .streamlit-expanderHeader {
+        background-color: #E8F8F5;
+        border-radius: 8px;
+        border-left: 4px solid #7DD3C0;
+    }
+    
+    /* Success/Info messages */
+    .stSuccess {
+        background-color: #D4F9F5 !important;
+        border-left: 4px solid #7DD3C0;
+    }
+    
+    .stInfo {
+        background-color: #FFF0F5 !important;
+        border-left: 4px solid #FFB6D9;
+    }
+    
+    /* Dividers */
+    .stDivider {
+        border-color: #7DD3C0 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     st.title("💌 Letters to Bub")
     
     # Initialize storage
     LETTERS_FILE = "letters.json"
     MEMORIES_FILE = "memories.json"
     FLOWERS_FILE = "flowers.json"
+    REMINDERS_FILE = "reminders.json"
     
-    for file in [LETTERS_FILE, MEMORIES_FILE, FLOWERS_FILE]:
+    for file in [LETTERS_FILE, MEMORIES_FILE, FLOWERS_FILE, REMINDERS_FILE]:
         if not os.path.exists(file):
             with open(file, "w") as f:
                 json.dump([], f)
     
     # Create tabs
-    tab1, tab2, tab3 = st.tabs(["💌 Letters to Bub", "🌅 Our Memories", "🌸 Flowers for just for you"])
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "💌 Letters to Bub", 
+        "🌅 Our Memories", 
+        "🌸 Flowers for just for you",
+        "✨ Everything that reminds me of you"
+    ])
     
     # ===== TAB 1: LETTERS TO BUB =====
     with tab1:
@@ -184,3 +278,105 @@ if check_password():
                             st.rerun()
         else:
             st.info("No flowers yet. Upload your first one! 🌸")
+    
+    # ===== TAB 4: EVERYTHING THAT REMINDS ME OF YOU =====
+    with tab4:
+        st.header("✨ Everything That Reminds Me of You")
+        st.markdown("_Share poems, pictures, and memories all in one beautiful place_")
+        
+        st.subheader("📝 Add a New Entry")
+        
+        with st.form("reminder_form"):
+            col1, col2 = st.columns(2)
+            with col1:
+                reminder_type = st.radio("What would you like to add?", 
+                                        ["📝 Poem", "🖼️ Picture"])
+            with col2:
+                st.write("")
+            
+            if reminder_type == "📝 Poem":
+                title = st.text_input("Poem Title")
+                content = st.text_area("Write your poem", height=200)
+                caption = st.text_input("Caption (optional)")
+                submitted = st.form_submit_button("📝 Post Poem")
+                
+                if submitted and title and content:
+                    reminders = load_json(REMINDERS_FILE)
+                    reminders.insert(0, {
+                        "type": "poem",
+                        "title": title,
+                        "content": content,
+                        "caption": caption,
+                        "id": len(reminders)
+                    })
+                    save_json(REMINDERS_FILE, reminders)
+                    st.success("Poem added! 📝")
+                    st.rerun()
+            
+            else:  # Picture
+                picture_title = st.text_input("Picture Title")
+                picture_caption = st.text_input("Picture Caption")
+                uploaded_file = st.file_uploader("Choose a picture", type=["jpg", "jpeg", "png", "gif"], key="reminder_uploader")
+                submitted = st.form_submit_button("🖼️ Post Picture")
+                
+                if submitted and uploaded_file and picture_title:
+                    file_path = save_upload_file(uploaded_file)
+                    reminders = load_json(REMINDERS_FILE)
+                    reminders.insert(0, {
+                        "type": "picture",
+                        "title": picture_title,
+                        "caption": picture_caption,
+                        "file": file_path,
+                        "id": len(reminders)
+                    })
+                    save_json(REMINDERS_FILE, reminders)
+                    st.success("Picture added! 🖼️")
+                    st.rerun()
+        
+        st.divider()
+        st.subheader("💫 Your Collection")
+        
+        reminders = load_json(REMINDERS_FILE)
+        if reminders:
+            for idx, reminder in enumerate(reminders):
+                if reminder["type"] == "poem":
+                    st.markdown(f"""
+                    <div style="
+                        background: linear-gradient(135deg, rgba(125, 211, 192, 0.1), rgba(255, 182, 217, 0.1));
+                        padding: 20px;
+                        border-radius: 12px;
+                        border-left: 5px solid #7DD3C0;
+                        margin-bottom: 15px;
+                    ">
+                        <h4 style="color: #4A9B8E; margin: 0 0 10px 0;">📝 {reminder['title']}</h4>
+                        <p style="color: #2D6A60; white-space: pre-wrap; line-height: 1.6;">{reminder['content']}</p>
+                        {f"<p style='color: #FFB6D9; font-size: 0.9em; margin-top: 10px;'>{reminder['caption']}</p>" if reminder.get('caption') else ""}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    col1, col2, col3 = st.columns([3, 1, 1])
+                    with col3:
+                        if st.button("🗑️ Delete", key=f"delete_reminder_{idx}"):
+                            reminders.pop(idx)
+                            save_json(REMINDERS_FILE, reminders)
+                            st.success("Deleted!")
+                            st.rerun()
+                
+                else:  # Picture
+                    if os.path.exists(reminder['file']):
+                        st.image(reminder['file'], use_column_width=True)
+                        st.markdown(f"<h4 style='color: #4A9B8E;'>{reminder['title']}</h4>", unsafe_allow_html=True)
+                        if reminder.get('caption'):
+                            st.markdown(f"<p style='color: #FFB6D9;'>{reminder['caption']}</p>", unsafe_allow_html=True)
+                        
+                        if st.button("🗑️ Delete", key=f"delete_reminder_{idx}"):
+                            reminders.pop(idx)
+                            save_json(REMINDERS_FILE, reminders)
+                            if os.path.exists(reminder['file']):
+                                os.remove(reminder['file'])
+                            st.success("Deleted!")
+                            st.rerun()
+                        
+                        st.divider()
+        else:
+            st.info("No entries yet. Start adding your memories! ✨")
