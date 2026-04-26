@@ -196,8 +196,6 @@ if check_password():
     
     # ===== TAB 2: OUR MEMORIES =====
     elif page == "🌅 Our Memories":
-    # ===== TAB 2: OUR MEMORIES =====
-    elif page == "🌅 Our Memories":
         st.header("📸 Upload Your Memory")
         
         with st.form("memory_form"):
